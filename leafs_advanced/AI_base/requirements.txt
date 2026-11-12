@@ -1,0 +1,5 @@
+# Shared Pi 3B/3B+ and Pi 4B classroom environment:
+# Raspberry Pi OS Bookworm (64-bit), CPython 3.11, isolated venv.
+numpy==1.26.4
+Pillow==10.4.0
+onnxruntime==1.18.1

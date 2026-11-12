@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+results*.csv
+# Keep bundled lab photographs even when a parent repository ignores JPEG files.
+!images/*.jpg
