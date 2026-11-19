@@ -1,0 +1,9 @@
+# Custom partition table with a 1 MiB SPIFFS "storage" partition for
+# configuration.txt and events_log.txt (see partitions.csv).
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# partitions.csv ends at 0x310000 (~3.1 MB), which does not fit the ESP-IDF
+# default flash size of 2 MB. Most ESP32 DevKit boards have 4 MB of flash;
+# confirm this for the board actually used (esptool.py flash_id).
+CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y

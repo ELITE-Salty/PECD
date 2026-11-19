@@ -1,0 +1,29 @@
+# ESP-IDF build output and generated configuration
+build/
+managed_components/
+sdkconfig
+sdkconfig.old
+compile_commands.json
+.clangd/
+.cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.devcontainer/
+.DS_Store
+__MACOSX/
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Large model files: keep them out of git; document their source and hash
+# in RaspberryPi/README.md instead (or use Git LFS if the team decides so).
+*.onnx
+*.tflite

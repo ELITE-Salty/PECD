@@ -1,0 +1,6 @@
+# Python dependencies for the Raspberry Pi software.
+# To be filled in by the Raspberry Pi team member once the implementation
+# exists. Pin exact versions (package==x.y.z) for reproducibility.
+#
+# Packages used by the course lab starters (for reference only, not yet adopted):
+#   numpy, Pillow, opencv-python, onnxruntime, pyserial

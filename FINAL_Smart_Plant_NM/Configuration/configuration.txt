@@ -1,0 +1,11 @@
+# Buzzer alarm rules: <number of beeps>: <sensor> <operator> <threshold>
+# Sensors: air_humidity (%RH), air_temperature (degC), soil_humidity (see below)
+# Operators: < and >
+#
+# PLACEHOLDER VALUES: these are the examples from the assignment, not
+# thresholds researched for our plant species.
+# soil_humidity is currently compared in RAW ADC counts (0..4095), not on the
+# assignment's 0..1000 scale, because the sensor is not yet calibrated.
+1: air_humidity > 50
+2: air_temperature < 15
+3: soil_humidity < 300
