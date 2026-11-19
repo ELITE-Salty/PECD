@@ -23,6 +23,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <sys/stat.h>
 
 #include "dht.h"
@@ -36,6 +38,7 @@
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "pi_wake_schedule.h"
 
 /* ---------------- Pins and peripherals ---------------- */
 #define SOIL_ADC_UNIT       ADC_UNIT_1
@@ -72,6 +75,11 @@
  * overhead. At 1 s soil sampling this holds only a few hours of data. */
 #define LOG_ROTATE_BYTES    (256 * 1024)
 #define MAX_RULES           8
+#define PI_UART             UART_NUM_2
+#define PI_TX_GPIO          GPIO_NUM_17
+#define PI_RX_GPIO          GPIO_NUM_16
+#define PI_WAKE_GPIO        GPIO_NUM_25
+#define PI_WAKE_PULSE_MS    250
 
 static const char *TAG = "plant";
 
@@ -101,6 +109,7 @@ static int s_rule_count = 0;
 
 static adc_oneshot_unit_handle_t s_adc;
 static bool s_storage_ready = false;
+static pi_wake_schedule_t s_pi_wake_schedule;
 
 /* ======================================================================
  * Storage and event log
@@ -336,10 +345,60 @@ static void sample_dht(void)
 }
 
 /* ======================================================================
+ * Pi daily wake: GPIO25 open-drain -> Pi GPIO3, physical pin 5.
+ * A high output releases the line; never drive the Pi wake pin high.
+ * Pi must retain power while halted. This does not switch its power supply.
+ * ====================================================================== */
+
+static void pi_wake_init(void)
+{
+    ESP_ERROR_CHECK(gpio_set_level(PI_WAKE_GPIO, 1));
+    const gpio_config_t conf = {
+        .pin_bit_mask = 1ULL << PI_WAKE_GPIO,
+        .mode = GPIO_MODE_OUTPUT_OD,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE,
+    };
+    ESP_ERROR_CHECK(gpio_config(&conf));
+    ESP_ERROR_CHECK(gpio_set_level(PI_WAKE_GPIO, 1));
+    pi_wake_schedule_init(&s_pi_wake_schedule, esp_timer_get_time());
+}
+
+static void check_pi_wake(void)
+{
+    if (!pi_wake_schedule_due(&s_pi_wake_schedule, esp_timer_get_time())) return;
+    ESP_ERROR_CHECK(gpio_set_level(PI_WAKE_GPIO, 0));
+    vTaskDelay(pdMS_TO_TICKS(PI_WAKE_PULSE_MS));
+    ESP_ERROR_CHECK(gpio_set_level(PI_WAKE_GPIO, 1));
+    log_event("Pi wake pulse sent; next pulse in 24 hours");
+    ESP_LOGI(TAG, "Pi wake pulse sent (GPIO25); next pulse in 24 hours");
+}
+
+/* ======================================================================
  * Serial log export (kept from the first integrated version)
  * Typing "logs" + Enter in `idf.py monitor` dumps both log files, each line
  * prefixed with "@@PLANT|" so a PC-side script can extract them.
  * ====================================================================== */
+
+/* Replies go back to the requesting port. UART2 keeps the Pi protocol clear
+ * of console messages; UART0 remains available for the existing USB monitor. */
+static uart_port_t s_reply_uart = UART_NUM_0;
+
+static void serial_reply(const char *format, ...)
+{
+    char message[256];
+    va_list args;
+    va_start(args, format);
+    int length = vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    if (length < 0 || length >= (int)sizeof(message)) return;
+    if (s_reply_uart == UART_NUM_0) {
+        fputs(message, stdout);
+    } else {
+        uart_write_bytes(s_reply_uart, message, length);
+    }
+}
 
 static void send_file(const char *name)
 {
@@ -347,41 +406,77 @@ static void send_file(const char *name)
     snprintf(path, sizeof(path), SPIFFS_BASE "/%s", name);
     FILE *file = fopen(path, "r");
     if (file == NULL) {
-        printf("@@PLANT|MISSING|%s\n", name);
+        serial_reply("@@PLANT|MISSING|%s\n", name);
         return;
     }
-    printf("@@PLANT|BEGIN|%s\n", name);
+    serial_reply("@@PLANT|BEGIN|%s\n", name);
     char line[180];
     while (fgets(line, sizeof(line), file) != NULL) {
         line[strcspn(line, "\r\n")] = '\0';
-        printf("@@PLANT|LINE|%s|%s\n", name, line);
+        serial_reply("@@PLANT|LINE|%s|%s\n", name, line);
     }
+    bool failed = ferror(file);
     fclose(file);
-    printf("@@PLANT|END|%s\n", name);
+    if (failed) serial_reply("@@PLANT|ERROR|Log read failed\n");
+    else serial_reply("@@PLANT|END|%s\n", name);
 }
 
 /* Non-blocking: consumes whatever bytes are already in the UART RX buffer. */
-static void check_serial_command(void)
+static void check_serial_port(uart_port_t port, int index)
 {
-    static char command[16];
-    static int length = 0;
+    static char commands[2][32];
+    static int lengths[2];
+    static bool overflow[2];
+    char *command = commands[index];
     uint8_t c;
-    while (uart_read_bytes(UART_NUM_0, &c, 1, 0) == 1) {
+    while (uart_read_bytes(port, &c, 1, 0) == 1) {
         if (c == '\n' || c == '\r') {
-            command[length] = '\0';
-            if (strcmp(command, "logs") == 0) {
+            s_reply_uart = port;
+            command[lengths[index]] = '\0';
+            int count = 0;
+            if (strlen(command) == 6 && strncmp(command, "BEEP ", 5) == 0 &&
+                command[5] >= '1' && command[5] <= '9') count = command[5] - '0';
+            if (strcmp(command, "BEEP 10") == 0) count = 10;
+            if (overflow[index]) {
+                serial_reply("@@PLANT|ERROR|Command too long\n");
+            } else if (strcmp(command, "PING") == 0) {
+                serial_reply("@@PLANT|READY\n");
+            } else if (strcmp(command, "WAKE_STATUS") == 0) {
+                serial_reply("@@PLANT|WAKE|%lld\n", (long long)
+                    pi_wake_seconds_left(&s_pi_wake_schedule, esp_timer_get_time()));
+            } else if (strncmp(command, "WAKE_IN ", 8) == 0) {
+                char *end;
+                errno = 0;
+                long seconds = strtol(command + 8, &end, 10);
+                if (errno || end == command + 8 || *end || seconds < 30 || seconds > 86400) {
+                    serial_reply("@@PLANT|ERROR|WAKE_IN requires 30..86400 seconds\n");
+                } else {
+                    s_pi_wake_schedule.next_us = esp_timer_get_time() + (int64_t)seconds * 1000000;
+                    log_event("Pi next wake scheduled in %ld seconds", seconds);
+                    serial_reply("@@PLANT|WAKE|%ld\n", seconds);
+                }
+            } else if (count) {
+                log_event("vision alarm: buzzer %d", count);
+                beep(count);
+                serial_reply("@@PLANT|BEEP|%d|DONE\n", count);
+            } else if (strcmp(command, "logs") == 0) {
                 if (s_storage_ready) {
                     send_file("events_prev.txt");
                     send_file("events_log.txt");
                 } else {
-                    printf("@@PLANT|ERROR|SPIFFS not mounted\n");
+                    serial_reply("@@PLANT|ERROR|SPIFFS not mounted\n");
                 }
-                printf("@@PLANT|DONE\n");
-                fflush(stdout);
+                serial_reply("@@PLANT|DONE\n");
+            } else if (lengths[index] && strcmp(command, "READY") != 0) {
+                serial_reply("@@PLANT|ERROR|Unknown command\n");
             }
-            length = 0;
-        } else if (length < (int)sizeof(command) - 1) {
-            command[length++] = (char)c;
+            fflush(stdout);
+            lengths[index] = 0;
+            overflow[index] = false;
+        } else if (lengths[index] < (int)sizeof(commands[index]) - 1) {
+            commands[index][lengths[index]++] = (char)c;
+        } else {
+            overflow[index] = true;
         }
     }
 }
@@ -398,8 +493,21 @@ void app_main(void)
     buzzer_init();
     soil_init();
     dht_init();
+    pi_wake_init();
     /* RX buffer for the "logs" command; the console itself keeps using UART0. */
     ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0, 1024, 0, 0, NULL, 0));
+    const uart_config_t pi_uart_config = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    ESP_ERROR_CHECK(uart_param_config(PI_UART, &pi_uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(PI_UART, PI_TX_GPIO, PI_RX_GPIO,
+                               UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+    ESP_ERROR_CHECK(uart_driver_install(PI_UART, 1024, 0, 0, NULL, 0));
 
     vTaskDelay(pdMS_TO_TICKS(DHT_STARTUP_MS));
     ESP_LOGI(TAG, "started: soil every %d ms, DHT11 every %d ms, %d rule(s)",
@@ -412,6 +520,7 @@ void app_main(void)
     int64_t next_dht_us = 0;
 
     while (true) {
+        check_pi_wake();
         int64_t now_us = esp_timer_get_time();
         if (now_us >= next_soil_us) {
             sample_soil();
@@ -421,10 +530,12 @@ void app_main(void)
             sample_dht();
             next_dht_us = now_us + (int64_t)DHT_INTERVAL_MS * 1000;
         }
-        check_serial_command();
+        check_serial_port(UART_NUM_0, 0);
+        check_serial_port(PI_UART, 1);
 
         int64_t next_us = (next_soil_us < next_dht_us) ? next_soil_us : next_dht_us;
         int64_t wait_ms = (next_us - esp_timer_get_time()) / 1000;
+        if (wait_ms > 20) wait_ms = 20;  /* responsive Pi commands between samples */
         TickType_t ticks = pdMS_TO_TICKS(wait_ms > 0 ? wait_ms : 0);
         vTaskDelay(ticks > 0 ? ticks : 1);   /* always yield at least one tick */
     }

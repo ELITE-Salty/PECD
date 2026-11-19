@@ -65,7 +65,21 @@ uptime=13s: buzzer 1
 ```
 
 To retrieve the log, type `logs` + Enter in `idf.py monitor`; each line is
-printed with an `@@PLANT|` prefix.
+printed with an `@@PLANT|` prefix. The same commands work on UART2, TX=GPIO17,
+RX=GPIO16, 115200 8N1, for the Pi. `PING` replies `@@PLANT|READY`;
+`BEEP 4` plays four beeps, logs the vision alarm and replies
+`@@PLANT|BEEP|4|DONE` after completion. Counts 1..10 are accepted. Replies
+return on the requesting port. See [the Pi guide](../RaspberryPi/README.md)
+for framing, wiring and configuration.
+
+The daily Pi wake scheduler uses GPIO25 in open-drain mode, connected to Pi
+GPIO3 (physical pin 5). It sends a 250 ms low pulse every 24 hours, beginning
+24 hours after ESP32 startup. ESP32 reset restarts the countdown; this is an
+uptime interval rather than a wall-clock alarm. `WAKE_STATUS` reports seconds
+remaining. `WAKE_IN 60` schedules one short test, then normal daily scheduling
+resumes. Valid test delays are 30..86400 seconds. The wake wire and updated
+firmware must be in place before enabling Pi shutdown. See the Pi guide for
+the full daily sequence and limitations.
 
 ## Build and flash
 
@@ -78,10 +92,12 @@ idf.py -p <PORT> flash monitor     # firmware only; keeps the stored log
 
 `configuration.txt` is taken from `../Configuration/` at build time.
 
-**Build status:** not yet built with ESP-IDF in this repository. The source
-has only passed a host-side syntax check (GCC with stub headers), which does
-not validate the ESP-IDF API usage, the CMake configuration or behaviour on
-hardware.
+**Build status:** successfully built with the installed ESP-IDF 6.1 toolchain
+on 2026-11-19, including the UART2, remote alarm and daily wake changes.
+The UART/beep version was tested with the Pi. The latest daily-wake version
+was flashed with hash verification, preserving SPIFFS. A 60-second wake test
+sent the GPIO25 pulse, restored the daily interval and successfully booted
+PECD-NK. The Pi's automatic boot-cycle/shutdown service still needs sudo setup.
 
 ## Dependencies
 

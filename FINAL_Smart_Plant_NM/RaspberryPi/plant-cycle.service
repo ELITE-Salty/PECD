@@ -1,0 +1,22 @@
+[Unit]
+Description=Capture plant photo, assess health and collect ESP32 logs
+After=local-fs.target
+ConditionPathExists=!/home/kopin/plant-monitor/maintenance
+
+[Service]
+Type=oneshot
+User=kopin
+SupplementaryGroups=dialout video
+WorkingDirectory=/home/kopin/plant-monitor
+ExecStart=/home/kopin/Desktop/.venv/bin/python /home/kopin/plant-monitor/plant_cycle.py --config /home/kopin/plant-monitor/config.json
+TimeoutStartSec=8min
+TimeoutStopSec=15s
+Restart=no
+# GPIO wake was verified on PECD-NK. Installing/enabling this unit opts into
+# automatic shutdown after each boot cycle, including failed cycles.
+# '+' runs only this shutdown command with system privileges.
+# ExecStopPost also runs after failure, bounding power use on a failed cycle.
+ExecStopPost=+/usr/bin/systemctl --no-block poweroff
+
+[Install]
+WantedBy=multi-user.target

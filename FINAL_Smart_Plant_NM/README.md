@@ -27,8 +27,8 @@ measurements and actions are recorded in `events_log.txt`.
 | Capacitive/resistive soil moisture sensor *(exact model to be confirmed)* | Soil moisture (analog) | ESP32 GPIO34 (ADC1 CH6) |
 | DHT11 | Air temperature and relative humidity | ESP32 GPIO26 |
 | Passive buzzer | Audio alerts | ESP32 GPIO27 (LEDC PWM, 800 Hz) |
-| Raspberry Pi *(model to be confirmed)* | Camera acquisition, computer vision | - |
-| RGB camera *(model to be confirmed)* | Plant images | Raspberry Pi |
+| Raspberry Pi 3 Model B Rev 1.2 (reported by PECD-NK) | Camera acquisition, computer vision | UART2; worked before shutdown, post-wake link needs diagnosis |
+| IMX219 ribbon camera | Plant images | Raspberry Pi CSI |
 
 Wiring details: [Documentation/hardware/](Documentation/hardware/README.md).
 
@@ -38,7 +38,7 @@ Wiring details: [Documentation/hardware/](Documentation/hardware/README.md).
 FINAL_Smart_Plant_NM/
 ├── ESP32/            ESP-IDF firmware (sensors, buzzer, rules, event log)
 │   └── reference/    unmodified snapshots of the original modules
-├── RaspberryPi/      camera and computer vision (in development)
+├── RaspberryPi/      capture, model selection, ESP32 serial client, boot service
 ├── Configuration/    configuration.txt (alarm rules) - single source
 ├── Tests/            scripts and procedures for each experiment
 ├── Results/          raw measurements, energy data, graphs
@@ -54,15 +54,16 @@ hardware, with evidence in `Results/`), **Proposed**, **Not started**.
 | Feature | Status |
 | --- | --- |
 | Buzzer, soil ADC and DHT11 as individual modules | Implemented; tested individually during the labs |
-| Integrated ESP32 baseline (single loop, fixed intervals) | Implemented, **not yet built or tested in this repository** |
-| `configuration.txt` rule parsing and buzzer alarms | Implemented (baseline), not yet tested |
-| `events_log.txt` on SPIFFS (uptime timestamps) | Implemented (baseline), not yet tested |
+| Integrated ESP32 baseline (single loop, fixed intervals) | Built and flashed with ESP-IDF 6.1; sensor output observed, full system validation incomplete |
+| `configuration.txt` rule parsing and buzzer alarms | Rule loading and alarm events observed; threshold calibration pending |
+| `events_log.txt` on SPIFFS (uptime timestamps) | Log snapshots retrieved successfully; post-wake UART transfer needs diagnosis |
 | Calendar timestamps in the event log | Not started (needs a time source) |
 | Soil sensor calibration to the 0..1000 scale | Not started (Experiment 1) |
 | Adaptive sampling | Proposed (Experiment 2) |
 | ESP32 sleep modes | Proposed (Experiment 4) |
-| ESP32 ↔ Raspberry Pi communication | Not decided; a UART prototype exists from the labs |
-| Camera capture and computer vision | In development by the Raspberry Pi team member |
+| ESP32 ↔ Raspberry Pi communication | UART log retrieval and beep acknowledgement tested with PECD-NK |
+| Camera capture and computer vision | Camera and selective model pipeline tested on PECD-NK; species/field calibration pending |
+| Pi boot cycle and shutdown | GPIO wake verified. Post-wake UART transfer needs diagnosis; boot/shutdown service not installed (Pi sudo password required) |
 | Energy measurements | Not started (Experiment 5) |
 
 ## Build (ESP32)
@@ -79,9 +80,12 @@ idf.py -p <PORT> storage-flash   # first time and after editing configuration.tx
 idf.py -p <PORT> flash monitor
 ```
 
-> These are the standard ESP-IDF commands for this project layout. The build
-> has **not yet been verified** in this repository structure; see
-> [ESP32/README.md](ESP32/README.md).
+The firmware builds with ESP-IDF 6.1 and was flashed with hash verification.
+GPIO wake succeeded; the post-wake serial link still needs diagnosis. See
+[ESP32/README.md](ESP32/README.md).
+
+Pi setup, model-selection thresholds, serial wiring, test results and startup
+instructions are in [RaspberryPi/README.md](RaspberryPi/README.md).
 
 ## Team and contributions
 

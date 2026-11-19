@@ -1,0 +1,48 @@
+{
+  "started_utc": "2026-11-19T15:15:33.811902+00:00",
+  "delay_seconds": 60,
+  "initial_status": "@@PLANT|WAKE|86397",
+  "arm_response": "@@PLANT|WAKE|60",
+  "armed_utc": "2026-11-19T15:15:37.802955+00:00",
+  "pulse_utc": "2026-11-19T15:16:38.222050+00:00",
+  "observed_delay_seconds": 60.419,
+  "next_status": "@@PLANT|WAKE|86400",
+  "pi_online_utc": "2026-11-19T15:17:52.197353+00:00",
+  "pi_boot_evidence": [
+    "PECD-NK",
+    "6f763c86-dc00-49e1-955e-0dac6b894276",
+    "66.59 159.00",
+    "2026-11-19T15:17:50Z"
+  ],
+  "firmware_sha256": "3eed2935745577a3bebe7c3d1d4b9f227f0fb1e5c68792ad93eeac9c259973bb",
+  "esp32_chip": "ESP32-D0WD-V3 revision v3.1",
+  "pi_model": "Raspberry Pi 3 Model B Rev 1.2",
+  "wake_wiring": "ESP32 GPIO25 open-drain to Pi GPIO3 (physical pin 5); common ground",
+  "user_observed_boot": true,
+  "flash_verified": true,
+  "storage_partition_preserved": true,
+  "boot_service_installed": false,
+  "boot_service_blocker": "Pi sudo requires an interactive password",
+  "post_wake_cycle": {
+    "pi_run_directory": "/home/kopin/plant-monitor/runs/20261119T151941Z-09fea976",
+    "camera_capture": "passed",
+    "vision_result": "uncertain; configured species unknown",
+    "serial_transfer": "failed: handshake timed out",
+    "automatic_shutdown": "not tested; service not installed"
+  },
+  "serial_diagnostics": {
+    "pi_port": "/dev/serial0 -> ttyS0",
+    "pi_pins": "GPIO14 TXD1 / GPIO15 RXD1",
+    "serial_getty": "inactive",
+    "core_clock_hz": 400000000,
+    "baud_probes": [
+      72000,
+      184320,
+      115200
+    ],
+    "probe_result": "no received bytes",
+    "esp32_usb_console": "firmware running and sensor samples visible",
+    "local_usb_hupcl_disabled": true,
+    "next_check": "confirm physical Pi TX/RX wires terminate on ESP32 GPIO16/RX2 and GPIO17/TX2"
+  }
+}
