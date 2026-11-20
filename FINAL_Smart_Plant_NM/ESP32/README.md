@@ -3,6 +3,83 @@
 ESP-IDF application responsible for environmental sensing, alarm rules,
 buzzer notifications and event logging.
 
+## Currently selected option: unoptimised.c
+
+`main/CMakeLists.txt` currently builds `main/unoptimised.c`. It reads both
+sensors, exchanges a greeting with the Pi, then waits 2500 ms between cycles.
+The UART read can add up to 2000 ms, so the cycle can take about 4.5 seconds
+plus sensor and flash-write time. It keeps the existing moisture
+conversion (`MOISTURE_DRY` / `MOISTURE_WET`) and startup Pi wake pulse.
+
+Logs are saved directly in the ESP32's built-in flash (SPIFFS); no Pi or
+computer is needed while recording. This option appends startup, wake, valid
+sensor readings and sensor read errors to `/spiffs/events_log.txt`, using
+uptime timestamps. Soil entries
+include both raw ADC counts and the calculated percentage. Actual calls to
+`beep()` are logged too; the current startup demonstration plays three short
+beeps and one five-second beep before sampling begins.
+The current log rotates at 256 KiB to `events_prev.txt`, retaining one previous
+file. Logs survive reset and normal firmware flashing. A storage failure is
+reported on the console and does not stop sensing or automatically format flash.
+
+To view the saved files later, connect USB and type `logs` + Enter in
+`idf.py monitor`. This prints the stored text without deleting it. Allow about
+4.5 seconds plus sensor/flash time for a response; printing large logs pauses
+sampling and Pi exchanges until complete.
+This option has no Pi log transfer or remote commands. The alarm rules and
+daily wake scheduler described for `main.c` below are also separate features.
+
+### Basic Pi communication for the unoptimised measurement
+
+UART2 sends `Hello from ESP32\n` once per sensor cycle, then calls
+`uart_read_bytes` with a two-second timeout, as in the supplied lab example.
+Any received bytes are displayed and logged; `ACK` is not required and there
+is no Pi-ready wait or reconnect loop. The timeout is part of this baseline.
+Sent text, received text, and receive timeouts are recorded in `events_log.txt`.
+The firmware logs received chunks rather than assembling complete messages.
+
+Wire ESP32 GPIO17/TX2 to Pi pin 10/RX, GPIO16/RX2 to Pi pin 8/TX, and connect
+GND. Use 115200 baud, 8N1. The existing `pi_wake/main/Something.py` script can
+run on the Pi: it already answers `Hello from ESP32` with `ACK\n` without
+requiring a preceding `PING`. Stop other Pi programs using the same UART first.
+
+For comparison measurements, note whether the Pi was connected and replying.
+The added UART exchange and its flash log writes are both included in the
+measured consumption. Download logs after the measurement, not during it.
+
+To download the files to your PC, close the serial monitor (Ctrl+]) and run
+this from the ESP32 folder in an ESP-IDF terminal:
+
+```bash
+python tools/download_logs.py COM5
+```
+
+Open `downloaded_logs/<date-and-time>/events_log.txt` for the current log.
+`events_prev.txt` is downloaded too if present. Each download gets its own
+folder, so earlier copies are kept. The originals remain on the ESP32.
+Allow up to a couple of minutes for large logs; sampling pauses during the
+transfer. Interrupted downloads keep a `.partial` extension so they cannot
+be mistaken for complete files. The firmware yields briefly during large
+exports so the watchdog stays serviced.
+
+Build with `idf.py build`, then flash firmware with
+`idf.py -p <PORT> flash monitor`. If SPIFFS has never been initialised, run
+`idf.py -p <PORT> storage-flash` once, then reset the ESP32. **storage-flash
+erases existing logs**, so export any retained data before using it. Ordinary
+`flash` does not include the storage image.
+
+Validation: the basic UART exchange and its storage image built successfully
+with ESP-IDF 6.1.1 on 2026-11-20. This latest UART addition has not been flashed
+or tested with the Pi: the ESP32 was not connected over USB during the build.
+The earlier logging version was flashed on COM5 with hash verification;
+live soil/DHT readings and new saved entries were verified through `logs`.
+Existing logs were preserved. Windows required the CP210x USB serial driver;
+the ESP32 VS Code folder settings now select COM5.
+The USB downloader was verified on COM5 after flashing the export-yield fix;
+both stored files downloaded completely, and five transfer/error tests passed.
+
+The remaining sections describe the integrated `main.c` option unless noted.
+
 ## Responsibilities
 
 - Read soil moisture (analog, ADC) and air temperature/humidity (DHT11).
@@ -123,6 +200,7 @@ PECD-NK. The Pi's automatic boot-cycle/shutdown service still needs sudo setup.
 | File | Purpose |
 | --- | --- |
 | `main/main.c` | Baseline firmware |
+| `main/unoptimised.c` | Currently selected fixed-delay option with persistent logging |
 | `main/idf_component.yml` | DHT component dependency |
 | `partitions.csv`, `sdkconfig.defaults` | Custom partition table, 4 MB flash |
 | `dependencies.lock` | Pinned component versions (from the first integrated version) |
