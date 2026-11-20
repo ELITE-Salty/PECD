@@ -10,6 +10,7 @@ compile_commands.json
 # Python
 __pycache__/
 *.py[cod]
+ESP32/downloaded_logs/
 .venv/
 venv/
 
