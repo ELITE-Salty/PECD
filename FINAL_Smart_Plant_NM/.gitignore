@@ -1,5 +1,7 @@
 # ESP-IDF build output and generated configuration
 build/
+ESP32/build-*/
+ESP32/main/build-*/
 managed_components/
 sdkconfig
 sdkconfig.old

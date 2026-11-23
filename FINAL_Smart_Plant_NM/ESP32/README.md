@@ -3,9 +3,95 @@
 ESP-IDF application responsible for environmental sensing, alarm rules,
 buzzer notifications and event logging.
 
-## Currently selected option: unoptimised.c
+## Sleep measurements: light and deep
 
-`main/CMakeLists.txt` currently builds `main/unoptimised.c`. It reads both
+`main/optimised.c` provides two separate test modes. Each cycle reads soil
+moisture and the DHT11, performs the same basic Pi UART exchange, saves the
+events to ESP32 flash, then sleeps for **2500 ms**. A timer wakes it for the
+next cycle. The original `unoptimised.c` is unchanged.
+
+Run these commands from this ESP32 folder (not `ESP32/main`) in an ESP-IDF
+terminal. Use your actual serial port: `COM5` is the saved Windows setting;
+on Linux it may be `/dev/ttyUSB0`. Build all three firmware images with:
+
+```bash
+idf.py -B build-unoptimised -DPLANT_VARIANT=unoptimised build
+idf.py -B build-light -DPLANT_VARIANT=light build
+idf.py -B build-deep -DPLANT_VARIANT=deep build
+```
+
+Then flash and monitor one test at a time (exit the monitor with Ctrl+]):
+
+| Test | Flash and monitor |
+| --- | --- |
+| Original baseline | `idf.py -B build-unoptimised -p COM5 flash monitor` |
+| Light sleep | `idf.py -B build-light -p COM5 flash monitor` |
+| Deep sleep | `idf.py -B build-deep -p COM5 flash monitor` |
+
+Each build directory remembers its selected variant; a fresh build defaults
+to `unoptimised`. Keep the same `-B` directory for build, flash and monitor
+so you run the intended image. CMake prints `Plant firmware variant: ...`
+during configuration. Ordinary firmware flashing preserves existing logs.
+
+Light sleep resumes the loop. Deep sleep restarts the ESP32 application,
+reinitialises its peripherals, and continues with a cycle counter retained
+in RTC memory. Both modes play the original startup beeps and wake the Pi
+only after power-on/manual reset, **not after each sleep**. The buzzer is held
+off and the Pi wake line is held released during sleep.
+
+Logs still use `/spiffs/events_log.txt` and the same rotation/download format.
+Optimised entries additionally identify `mode=light` or `mode=deep` and
+`cycle=N`, including sleep-entry and wake events. In deep mode, the
+`uptime=` value restarts on each wake; use the cycle number to follow the
+sequence. A manual reset starts the cycle count again and writes a new
+system-start entry. These are not calendar timestamps or power readings.
+
+### Downloading logs from a sleeping ESP32
+
+After pressing **EN/reset**, either optimised mode stays awake for **15
+seconds** to accept the existing `logs` command. This window is skipped
+after a deep-sleep timer wake. To download:
+
+1. Close the serial monitor and prepare `python tools/download_logs.py COM5`.
+2. Press EN, wait about one second for boot, then run the command within the
+   15-second window.
+3. Find the result in `downloaded_logs/<date-and-time>/events_log.txt`.
+
+An accepted download finishes before sampling/sleep starts, even if it takes
+longer than 15 seconds. With `idf.py monitor`, press EN and type `logs` +
+Enter in the same window. USB/Pi input received while sleeping is not
+guaranteed to be retained; use this reset window for reliable downloads.
+Downloading does not delete the original files.
+
+### Comparing power
+
+Start the power recording after the download window and startup beeps
+(allow about 30 seconds after reset). Record light and deep sleep separately,
+using the same supply, sensor wiring and Pi response state as the baseline.
+The 2500 ms is the **sleep duration**, not the total sampling period: UART
+receive time, sensing, flash writes and deep-sleep boot time also count.
+Include complete wake/read/communicate/sleep cycles in each recording.
+Keep the two-second UART receive timeout for this first comparison.
+
+Sensors and the Pi remain powered; this code does not shut them down.
+Board LEDs, regulator and USB interface consumption also remain in a
+whole-board measurement. Measure the actual saving with your power monitor;
+the firmware's event log does not measure current or energy.
+See [the measurement procedure](../Tests/energy_measurements/README.md).
+Sleep behaviour follows the
+[Espressif sleep-mode documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/sleep_modes.html).
+
+Validation (2026-11-23): restored `main/CMakeLists.txt` after a stray character
+had replaced its contents and caused a CMake parse error. Light, deep and
+unoptimised variants all build successfully in their separate directories
+with ESP-IDF 6.1.1. Verified the selected sources and the light/deep compile
+definitions. The CP210x serial adapter is detected on COM5; firmware was not
+flashed or hardware-tested in this check. Verify repeated wakes, sensor/Pi
+readings and log downloads before collecting final measurements.
+
+## Baseline option: unoptimised.c
+
+`PLANT_VARIANT=unoptimised` builds `main/unoptimised.c`. It reads both
 sensors, exchanges a greeting with the Pi, then waits 2500 ms between cycles.
 The UART read can add up to 2000 ms, so the cycle can take about 4.5 seconds
 plus sensor and flash-write time. It keeps the existing moisture
@@ -200,7 +286,8 @@ PECD-NK. The Pi's automatic boot-cycle/shutdown service still needs sudo setup.
 | File | Purpose |
 | --- | --- |
 | `main/main.c` | Baseline firmware |
-| `main/unoptimised.c` | Currently selected fixed-delay option with persistent logging |
+| `main/unoptimised.c` | Original fixed-delay option with persistent logging |
+| `main/optimised.c` | Separate light/deep-sleep tests with the same sensing and UART exchange |
 | `main/idf_component.yml` | DHT component dependency |
 | `partitions.csv`, `sdkconfig.defaults` | Custom partition table, 4 MB flash |
 | `dependencies.lock` | Pinned component versions (from the first integrated version) |

@@ -1,6 +1,7 @@
-"""Copy the unoptimised firmware's saved logs over USB without resetting it.
+"""Copy saved logs from the baseline or sleep firmware without resetting it.
 
 Run in an ESP-IDF terminal: python tools/download_logs.py COM5
+For sleep firmware, press EN first and run during its 15-second access window.
 Requires pyserial, which is included in the ESP-IDF Python environment.
 """
 
