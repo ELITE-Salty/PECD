@@ -1,0 +1,110 @@
+{
+ "UnOptimised+PIComms1": {
+  "duration_s": 32.6,
+  "excluded_startup_s": 8.1,
+  "mean_I_mA": 42.97,
+  "mean_P_mW": 214.5,
+  "idle_I_mA": 41.95,
+  "idle_P_mW": 209.4,
+  "V": 4.992,
+  "burst_groups": 14,
+  "extra_energy_mJ": 166.0,
+  "burst_peak_mA": 66.9,
+  "beep_window_s": [
+   1.9,
+   7.1
+  ],
+  "beep_mean_I_mA": 63.6,
+  "beep_extra_mJ": 561.0
+ },
+ "UnOptimised+PIComms2": {
+  "duration_s": 42.9,
+  "excluded_startup_s": 8.0,
+  "mean_I_mA": 43.06,
+  "mean_P_mW": 215.0,
+  "idle_I_mA": 42.07,
+  "idle_P_mW": 210.0,
+  "V": 4.992,
+  "burst_groups": 18,
+  "extra_energy_mJ": 213.0,
+  "burst_peak_mA": 67.1,
+  "beep_window_s": [
+   1.8,
+   7.0
+  ],
+  "beep_mean_I_mA": 63.9,
+  "beep_extra_mJ": 566.0
+ },
+ "UnOptimised+PIComms3": {
+  "duration_s": 58.5,
+  "excluded_startup_s": 8.0,
+  "mean_I_mA": 43.14,
+  "mean_P_mW": 215.4,
+  "idle_I_mA": 42.16,
+  "idle_P_mW": 210.5,
+  "V": 4.992,
+  "burst_groups": 25,
+  "extra_energy_mJ": 288.0,
+  "burst_peak_mA": 67.1,
+  "beep_window_s": [
+   1.7,
+   7.0
+  ],
+  "beep_mean_I_mA": 63.6,
+  "beep_extra_mJ": 568.0
+ },
+ "UnOptimised1": {
+  "duration_s": 328.8,
+  "excluded_startup_s": 7.7,
+  "mean_I_mA": 43.41,
+  "mean_P_mW": 216.7,
+  "idle_I_mA": 43.07,
+  "idle_P_mW": 215.0,
+  "V": 4.992,
+  "burst_groups": 129,
+  "extra_energy_mJ": 570.0,
+  "burst_peak_mA": 67.5,
+  "beep_window_s": [
+   1.7,
+   6.7
+  ],
+  "beep_mean_I_mA": 65.4,
+  "beep_extra_mJ": 558.0
+ },
+ "UnOptimised2": {
+  "duration_s": 293.4,
+  "excluded_startup_s": 7.5,
+  "mean_I_mA": 44.07,
+  "mean_P_mW": 220.0,
+  "idle_I_mA": 43.13,
+  "idle_P_mW": 215.3,
+  "V": 4.992,
+  "burst_groups": 111,
+  "extra_energy_mJ": 1375.0,
+  "burst_peak_mA": 68.5,
+  "beep_window_s": [
+   1.5,
+   6.5
+  ],
+  "beep_mean_I_mA": 65.5,
+  "beep_extra_mJ": 557.0
+ },
+ "UnOptimised3": {
+  "duration_s": 292.6,
+  "excluded_startup_s": 7.9,
+  "mean_I_mA": 44.29,
+  "mean_P_mW": 221.1,
+  "idle_I_mA": 43.15,
+  "idle_P_mW": 215.4,
+  "V": 4.992,
+  "burst_groups": 110,
+  "extra_energy_mJ": 1676.0,
+  "burst_peak_mA": 68.5,
+  "beep_window_s": [
+   1.8,
+   6.9
+  ],
+  "beep_mean_I_mA": 65.3,
+  "beep_extra_mJ": 563.0
+ }
+}
