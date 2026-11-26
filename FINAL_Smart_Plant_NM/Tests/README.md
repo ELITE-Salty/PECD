@@ -1,12 +1,11 @@
 # Tests
 
-Scripts, firmware variants and step-by-step procedures used to run the
-experiments described in `Documentation/experiments/experimental_plan.md`.
-Results are stored in `Results/`, not here.
+| Folder / file | What it contains |
+| --- | --- |
+| `sensor_calibration/` | Soil sensor two-point calibration (measured values) |
+| `energy_measurements/` | Monsoon `.pt5` analysis, energy model, trace figure, measurement procedure |
+| `adaptive_sampling/` | Unit tests and scenario simulation of the adaptive interval policy |
+| `computer_vision/` | Tests of the Pi cycle (`plant_cycle.py`) and of the Pi wake schedule |
+| `test_download_logs.py` | Tests of the USB log downloader (`ESP32/tools/download_logs.py`) |
 
-| Folder | Experiment | Status |
-| --- | --- | --- |
-| `sensor_calibration/` | 1 - soil calibration and filtering | Not started |
-| `adaptive_sampling/` | 2 - fixed vs. adaptive sampling | Not started |
-| `energy_measurements/` | 4, 5 - sleep modes and energy | Not started |
-| `computer_vision/` | visual distress detection accuracy, CV energy | Not started |
+Results are written to `../Results/` and figures to `../Report/figures/`.

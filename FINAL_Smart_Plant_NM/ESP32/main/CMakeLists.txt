@@ -1,13 +1,15 @@
 # Each build directory remembers its selected firmware variant.
-set(PLANT_VARIANT "unoptimised" CACHE STRING "Plant firmware: unoptimised, light, or deep")
-set_property(CACHE PLANT_VARIANT PROPERTY STRINGS unoptimised light deep)
+set(PLANT_VARIANT "unoptimised" CACHE STRING "Plant firmware: unoptimised, light, deep, or adaptive")
+set_property(CACHE PLANT_VARIANT PROPERTY STRINGS unoptimised light deep adaptive)
 
 if(PLANT_VARIANT STREQUAL "unoptimised")
     set(plant_source "unoptimised.c")
 elseif(PLANT_VARIANT STREQUAL "light" OR PLANT_VARIANT STREQUAL "deep")
     set(plant_source "optimised.c")
+elseif(PLANT_VARIANT STREQUAL "adaptive")
+    set(plant_source "adaptive.c")
 else()
-    message(FATAL_ERROR "Unknown PLANT_VARIANT='${PLANT_VARIANT}'. Choose unoptimised, light, or deep.")
+    message(FATAL_ERROR "Unknown PLANT_VARIANT='${PLANT_VARIANT}'. Choose unoptimised, light, deep, or adaptive.")
 endif()
 
 idf_component_register(

@@ -4,13 +4,14 @@
  * Integrates the three previously tested ESP-IDF modules (passive buzzer,
  * soil-moisture ADC, DHT11) into one application, together with the
  * configuration.txt alarm rules and events_log.txt logging introduced in the
- * first integrated version (see reference/integrated_v0_NM_main.c).
+ * first integrated version written during the labs.
  *
  * Baseline scope - intentionally simple so it can serve as the reference
  * point for the energy experiments:
  *   - one app_main() and one main loop, no additional FreeRTOS tasks;
  *   - fixed sampling intervals, configurable independently per sensor;
- *   - soil moisture kept as RAW ADC counts (0..4095) until calibrated;
+ *   - soil moisture converted to the assignment's 0..1000 scale with our
+ *     two-point calibration (raw 2560 = 1000, see Configuration/README.md);
  *   - no sleep modes and no adaptive sampling (planned experiments).
  *
  * Hardware (classic ESP32):
@@ -297,10 +298,9 @@ static void soil_init(void)
     ESP_ERROR_CHECK(adc_oneshot_config_channel(s_adc, SOIL_ADC_CHANNEL, &channel));
 }
 
-/* The value is logged and compared as RAW ADC counts. The assignment's
- * 0..1000 moisture scale requires a dry/wet calibration of this specific
- * sensor (Experiment 1); until then no conversion is applied, so thresholds
- * for soil_humidity in configuration.txt are also in raw counts. */
+/* Converted to the assignment's 0..1000 scale with our two-point calibration
+ * (air = raw 0, sensor saturated in wet soil = raw 2560). The raw value is
+ * logged as well, so the calibration can be redone from old logs. */
 static void sample_soil(void)
 {
     int raw = 0;
@@ -310,9 +310,11 @@ static void sample_soil(void)
         log_event("soil_humidity read failed: %s", esp_err_to_name(err));
         return;
     }
-    ESP_LOGI(TAG, "soil raw=%d / 4095", raw);
-    log_event("soil_humidity = %d (raw ADC)", raw);
-    evaluate_rules(SENSOR_SOIL_HUMIDITY, (float)raw);
+    float soil = 1000.0f * (float)raw / 2560.0f;
+    if (soil > 1000.0f) soil = 1000.0f;
+    ESP_LOGI(TAG, "soil raw=%d / 4095 -> %.0f / 1000", raw, soil);
+    log_event("soil_humidity = %.0f (raw %d)", soil, raw);
+    evaluate_rules(SENSOR_SOIL_HUMIDITY, soil);
 }
 
 /* ======================================================================

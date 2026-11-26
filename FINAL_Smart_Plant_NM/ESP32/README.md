@@ -3,11 +3,50 @@
 ESP-IDF application responsible for environmental sensing, alarm rules,
 buzzer notifications and event logging.
 
+## Which file is what
+
+| Variant (`-DPLANT_VARIANT=`) | Source | Role |
+| --- | --- | --- |
+| `unoptimised` | `main/unoptimised.c` | **Baseline**: always awake, reads every ~2.5 s, waits 2 s for the Pi every cycle. Measured. |
+| `light` / `deep` | `main/optimised.c` | Same work as the baseline, then sleeps 10 s. Measured. |
+| `adaptive` | `main/adaptive.c` + `main/adaptive_sampling.h` | **Final system**: rules, deep sleep, adaptive interval 60-900 s, Pi woken daily or on a new alarm, UART only while the Pi is awake. Logic unit-tested on PC; **not yet built with ESP-IDF or flashed** (see below). |
+| *(earlier integrated version)* | `main/main.c` | Rules + Pi protocol, no sleep. |
+
+## Final firmware: adaptive.c
+
+```bash
+idf.py -B build-adaptive -DPLANT_VARIANT=adaptive build
+idf.py -B build-adaptive -p COM5 flash monitor
+```
+
+How the interval is chosen (logic in `main/adaptive_sampling.h`, same code
+used by the PC test in `Tests/adaptive_sampling`):
+
+- start at 60 s; every reading that did not change by more than the sensor
+  noise (soil 20/1000, temperature 1 degC, humidity 3 %RH) doubles the
+  interval, up to 900 s;
+- a real change, or a value within a small band of any rule threshold
+  (soil 50, temperature 2 degC, humidity 5 %RH), goes back to 60 s;
+- the Raspberry Pi is woken once at installation, then every 24 h, plus once
+  when a new alarm starts (at most every 6 h). After the wake pulse the ESP32
+  stays awake (max. 5 min) and answers `PING`, `BEEP n` and `logs`; the
+  session ends when the Pi has fetched the logs.
+- Deep sleep is the default (our energy model: ~10 % less than light sleep at
+  60 s or more). Build with `-DPLANT_DEEP_SLEEP=0` for light sleep.
+  Interval state, rule states and the time of the last photo are kept in RTC
+  memory. Log lines use the time since power-on, which keeps running in sleep.
+- After power-on/EN there is the same 15 s `logs` window as `optimised.c`.
+
+Status (2026-11-25): `adaptive_sampling.h` passes its unit tests on a PC
+(gcc). `adaptive.c` was syntax- and type-checked with gcc against stub
+headers only; it still has to be built with ESP-IDF and tested on the
+hardware (repeated wakes, rules, Pi session).
+
 ## Sleep measurements: light and deep
 
 `main/optimised.c` provides two separate test modes. Each cycle reads soil
 moisture and the DHT11, performs the same basic Pi UART exchange, saves the
-events to ESP32 flash, then sleeps for **2500 ms**. A timer wakes it for the
+events to ESP32 flash, then sleeps for **10 000 ms** (`SLEEP_INTERVAL_MS`). A timer wakes it for the
 next cycle. The original `unoptimised.c` is unchanged.
 
 Run these commands from this ESP32 folder (not `ESP32/main`) in an ESP-IDF
@@ -68,7 +107,7 @@ Downloading does not delete the original files.
 Start the power recording after the download window and startup beeps
 (allow about 30 seconds after reset). Record light and deep sleep separately,
 using the same supply, sensor wiring and Pi response state as the baseline.
-The 2500 ms is the **sleep duration**, not the total sampling period: UART
+The 10 s is the **sleep duration**, not the total sampling period: UART
 receive time, sensing, flash writes and deep-sleep boot time also count.
 Include complete wake/read/communicate/sleep cycles in each recording.
 Keep the two-second UART receive timeout for this first comparison.
@@ -125,9 +164,9 @@ Sent text, received text, and receive timeouts are recorded in `events_log.txt`.
 The firmware logs received chunks rather than assembling complete messages.
 
 Wire ESP32 GPIO17/TX2 to Pi pin 10/RX, GPIO16/RX2 to Pi pin 8/TX, and connect
-GND. Use 115200 baud, 8N1. The existing `pi_wake/main/Something.py` script can
-run on the Pi: it already answers `Hello from ESP32` with `ACK\n` without
-requiring a preceding `PING`. Stop other Pi programs using the same UART first.
+GND. Use 115200 baud, 8N1. A small lab script on the Pi
+(`~/Desktop/Something.py`, not part of this repository) answers
+`Hello from ESP32` with `ACK\n` without requiring a preceding `PING`. Stop other Pi programs using the same UART first.
 
 For comparison measurements, note whether the Pi was connected and replying.
 The added UART exchange and its flash log writes are both included in the
@@ -173,8 +212,7 @@ The remaining sections describe the integrated `main.c` option unless noted.
   valid reading.
 - Signal alarms with the buzzer (N beeps, as defined by the rule).
 - Record measurements and actions in `events_log.txt`.
-- *(Planned)* adaptive sampling, sleep modes, communication with the
-  Raspberry Pi.
+- Adaptive sampling and sleep: see `adaptive.c` above.
 
 ## Hardware configuration
 
@@ -210,9 +248,8 @@ claimed to be energy-optimal.
 - A rule is re-armed when a valid reading no longer satisfies it.
 - Rules are not evaluated after a failed read, so a sensor fault cannot clear
   an alarm state.
-- `soil_humidity` is compared in **raw ADC counts (0..4095)** until the sensor
-  is calibrated. The example threshold `300` from the assignment refers to the
-  0..1000 scale and is therefore not meaningful yet.
+- `soil_humidity` is converted to the 0..1000 scale (raw 2560 = 1000) before
+  the rules are checked, see `Configuration/README.md`.
 
 ## Storage
 
@@ -221,7 +258,7 @@ A 1 MiB SPIFFS partition (`storage`, see `partitions.csv`) holds
 it reaches 256 KiB. Log lines use uptime because no wall-clock source exists:
 
 ```
-uptime=12s: soil_humidity = 2310 (raw ADC)
+uptime=12s: soil_humidity = 902 (raw 2310)
 uptime=13s: air_temperature = 21.0
 uptime=13s: air_humidity = 48.0
 uptime=13s: buzzer 1
@@ -270,14 +307,13 @@ PECD-NK. The Pi's automatic boot-cycle/shutdown service still needs sudo setup.
 
 ## Known limitations
 
-1. Soil readings are uncalibrated raw values; a single ADC sample is used
-   (no filtering) and the ESP32 ADC is not linearity-corrected.
+1. Soil calibration has only two points (air and wet soil); a single ADC
+   sample is used (no filtering) and the ESP32 ADC is not linearity-corrected.
 2. Timestamps are uptime-based, not the calendar format of the assignment.
 3. With 1 s soil sampling every reading is written to flash: high write rate
    (flash wear) and only a few hours of history before rotation.
 4. `beep()` blocks the main loop for up to ~5 s (10 beeps).
-5. No sleep modes: the CPU idles in FreeRTOS between samples, and the sensors
-   are permanently powered.
+5. `main.c` has no sleep modes (see `adaptive.c`); sensors are always powered.
 6. Rules support only `<` and `>`.
 7. `storage-flash` overwrites the whole partition, including logs.
 
@@ -285,10 +321,11 @@ PECD-NK. The Pi's automatic boot-cycle/shutdown service still needs sudo setup.
 
 | File | Purpose |
 | --- | --- |
-| `main/main.c` | Baseline firmware |
+| `main/main.c` | Integrated firmware without sleep (rules + Pi protocol) |
+| `main/adaptive.c` | Final firmware: rules, deep sleep, adaptive interval, event-driven Pi wake |
+| `main/adaptive_sampling.h` | Interval and Pi-wake policy (pure C, unit-tested on PC) |
 | `main/unoptimised.c` | Original fixed-delay option with persistent logging |
 | `main/optimised.c` | Separate light/deep-sleep tests with the same sensing and UART exchange |
 | `main/idf_component.yml` | DHT component dependency |
 | `partitions.csv`, `sdkconfig.defaults` | Custom partition table, 4 MB flash |
 | `dependencies.lock` | Pinned component versions (from the first integrated version) |
-| `reference/` | Unmodified original modules, kept for traceability |

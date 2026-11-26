@@ -1,0 +1,59 @@
+{
+ "scenario_hours": 84,
+ "events": {
+  "soil_cross_s": 195830.0,
+  "watering_s": 210230.0,
+  "cold_start_s": 79200.0
+ },
+ "strategies": {
+  "fixed_2.5s_baseline": {
+   "readings_per_day": 34560,
+   "esp32_kJ_per_day": 18.94,
+   "bare_module_kJ_per_day": null,
+   "soil_alarm_delay_s": 51,
+   "cold_alarm_delay_s": 1
+  },
+  "fixed_10s": {
+   "readings_per_day": 8640,
+   "esp32_kJ_per_day": 5.1,
+   "bare_module_kJ_per_day": 1.126,
+   "soil_alarm_delay_s": 54,
+   "cold_alarm_delay_s": 4
+  },
+  "fixed_60s": {
+   "readings_per_day": 1440,
+   "esp32_kJ_per_day": 4.08,
+   "bare_module_kJ_per_day": 0.384,
+   "soil_alarm_delay_s": 92,
+   "cold_alarm_delay_s": 22
+  },
+  "fixed_900s": {
+   "readings_per_day": 96,
+   "esp32_kJ_per_day": 3.88,
+   "bare_module_kJ_per_day": 0.239,
+   "soil_alarm_delay_s": 703,
+   "cold_alarm_delay_s": 333
+  },
+  "adaptive_60_900s": {
+   "readings_per_day": 222,
+   "esp32_kJ_per_day": 3.93,
+   "bare_module_kJ_per_day": 0.288,
+   "median_interval_s": 60.0,
+   "share_of_time_at_max_interval": 0.86,
+   "soil_alarm_delay_s": 70,
+   "cold_alarm_delay_s": 360
+  }
+ },
+ "pi": {
+  "wakes": 5,
+  "wakes_per_day": 1.43,
+  "wake_times_h": [
+   0.0,
+   22.1,
+   46.2,
+   54.2,
+   78.4
+  ],
+  "reasons": "t=0 installation photo; then daily photos and an extra photo when a new alarm starts (>= 6 h after the previous photo)"
+ }
+}

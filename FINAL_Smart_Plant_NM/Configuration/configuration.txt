@@ -1,11 +1,13 @@
 # Buzzer alarm rules: <number of beeps>: <sensor> <operator> <threshold>
-# Sensors: air_humidity (%RH), air_temperature (degC), soil_humidity (see below)
+# Sensors: air_humidity (%RH), air_temperature (degC), soil_humidity (0..1000)
 # Operators: < and >
 #
-# PLACEHOLDER VALUES: these are the examples from the assignment, not
-# thresholds researched for our plant species.
-# soil_humidity is currently compared in RAW ADC counts (0..4095), not on the
-# assignment's 0..1000 scale, because the sensor is not yet calibrated.
-1: air_humidity > 50
-2: air_temperature < 15
+# Plant: dwarf sunflower 'Sunspot' (Helianthus annuus), from the greenhouse kit.
+# Thresholds and sources are explained in Configuration/README.md.
+# soil_humidity uses our two-point calibration: 0 = probe in air,
+# 1000 = sensor saturated in wet soil (raw ADC 2560); wet soil reads ~920.
+# 4 beeps are reserved for the camera (vision) alarm sent by the Raspberry Pi.
+1: air_humidity > 85
+2: air_temperature < 10
 3: soil_humidity < 300
+5: air_temperature > 35

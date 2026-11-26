@@ -24,7 +24,7 @@ Build/flash commands are in [the ESP32 guide](../../ESP32/README.md).
    entry using the mode, cycle numbers and system-start entries.
 
 The baseline waits 2500 ms in FreeRTOS; the optimised variants instead sleep
-for 2500 ms. All three retain the same two-second Pi receive timeout and
+for 10 s (`SLEEP_INTERVAL_MS` in `optimised.c`). All three retain the same two-second Pi receive timeout and
 sensor calculations. Deep sleep adds a boot/peripheral-initialisation step.
 Sleep variants add mode/cycle and sleep/wake log records; that small logging
 cost is included. This is a comparison of these complete firmware variants,

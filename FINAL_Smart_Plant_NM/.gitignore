@@ -9,6 +9,18 @@ compile_commands.json
 .clangd/
 .cache/
 
+# Host test build output and generated simulation trace
+Tests/adaptive_sampling/test_adaptive_sampling
+Tests/adaptive_sampling/test_adaptive_sampling.exe
+Tests/adaptive_sampling/scenario_trace.csv
+
+# Office lock files and LaTeX build output
+~$*
+*.aux
+*.log
+*.out
+*.synctex.gz
+
 # Python
 __pycache__/
 *.py[cod]

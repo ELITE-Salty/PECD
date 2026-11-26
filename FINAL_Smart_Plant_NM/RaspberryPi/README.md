@@ -205,7 +205,7 @@ The daily-wake firmware was flashed and verified on 2026-11-19, preserving the
 SPIFFS partition. `WAKE_IN 60` produced a logged GPIO25 pulse after 60.419 seconds
 and restored the 86400-second interval. The user observed boot activity; SSH
 returned with a new boot ID and about 66 seconds of uptime. Evidence is in
-`Results/raw_measurements/pi_wake_2026-11-19.json` in the repository. The boot
+`Results/pi_wake_test_2026-11-19.json` in the repository. The boot
 service's actual automatic shutdown remains untested until installation with
 sudo is completed. A post-wake manual cycle captured and analysed a photo, but
 its UART handshake timed out. Subsequent 115200-baud probes received no bytes;

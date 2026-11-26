@@ -1,0 +1,54 @@
+{
+ "inputs": {
+  "P_sleep_light_mW": 51.1,
+  "P_sleep_deep_mW": 44.7,
+  "P_awake_light_mW": 212.9,
+  "P_awake_deep_mW": 219.9,
+  "t_awake_light_measured_s": 2.52,
+  "t_awake_light_without_uart_s": 0.52,
+  "t_awake_deep_without_uart_s": 0.89,
+  "E_cycle_light_without_uart_mJ": 111.0,
+  "P_baseline_mW": 219.3,
+  "P_sleep_module_datasheet_mW": 2.64,
+  "P_pi_idle_W": 1.252,
+  "E_pi_wake_J": 300.0
+ },
+ "decomposition_check": {
+  "light": {
+   "predicted_mW": 83.9,
+   "measured_mW": 84.0,
+   "error_pct": -0.1
+  },
+  "deep": {
+   "predicted_mW": 84.5,
+   "measured_mW": 84.5,
+   "error_pct": -0.0
+  }
+ },
+ "avg_power_mW_at_interval_s": {
+  "10": {
+   "light_meas_fw": 83.7,
+   "light_adaptive": 59.1,
+   "deep_adaptive": 59.0,
+   "bare_module": 13.0
+  },
+  "60": {
+   "light_meas_fw": 57.6,
+   "light_adaptive": 52.5,
+   "deep_adaptive": 47.3,
+   "bare_module": 4.4
+  },
+  "240": {
+   "light_meas_fw": 52.8,
+   "light_adaptive": 51.4,
+   "deep_adaptive": 45.3,
+   "bare_module": 3.1
+  },
+  "900": {
+   "light_meas_fw": 51.6,
+   "light_adaptive": 51.2,
+   "deep_adaptive": 44.9,
+   "bare_module": 2.8
+  }
+ }
+}
