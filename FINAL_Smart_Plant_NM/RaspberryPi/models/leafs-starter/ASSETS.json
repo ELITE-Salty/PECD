@@ -1,0 +1,28 @@
+[
+  {
+    "path": "u2netp.onnx",
+    "sha256": "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8",
+    "origin": "Unchanged model from the original leafs project. Exact export provenance and license are not recorded in that project.",
+    "architecture_reference": "https://github.com/xuebinqin/U-2-Net"
+  },
+  {
+    "path": "images/pepper_healthy.jpg",
+    "url": "https://raw.githubusercontent.com/spMohanty/PlantVillage-Dataset/7f7ecc7e1eaca78107e3affe7cb5abd9427e139a/raw/color/Pepper%2C_bell___healthy/00100ffa-095e-4881-aebf-61fe5af7226e___JR_HL%207886.JPG",
+    "sha256": "910d6d3b451b8c724157ced4c7d10752064024bca00525df6c560c3003d479d2",
+    "license": "CC-BY-SA-3.0",
+    "attribution": "Mohanty, Hughes and Salathe; PlantVillage",
+    "changes": "Resized to 800 pixels wide and saved as JPEG for a readable overlay; no additional image detail is created.",
+    "source_sha256": "7338e5c3be02ddfb4fc37336c4d111ecb23dc33860bee59e77defaf563b621d7",
+    "source_dataset_label": "healthy"
+  },
+  {
+    "path": "images/pepper_bacterial_spot.jpg",
+    "url": "https://raw.githubusercontent.com/spMohanty/PlantVillage-Dataset/7f7ecc7e1eaca78107e3affe7cb5abd9427e139a/raw/color/Pepper%2C_bell___Bacterial_spot/0022d6b7-d47c-4ee2-ae9a-392a53f48647___JR_B.Spot%208964.JPG",
+    "sha256": "ad202e7e6775797e9a4847dc3349947c7d9e0eafc573f1a11d0236495d1a12a5",
+    "license": "CC-BY-SA-3.0",
+    "attribution": "Mohanty, Hughes and Salathe; PlantVillage",
+    "changes": "Resized to 800 pixels wide and saved as JPEG for a readable overlay; no additional image detail is created.",
+    "source_sha256": "a3ff41a119c785e4e37683880c47456ae2a4c27f37538072a08f2103dde2108d",
+    "source_dataset_label": "unhealthy"
+  }
+]

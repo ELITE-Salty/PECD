@@ -10,18 +10,36 @@ afterwards. The Python program itself never shuts down the machine.
 On 2026-11-19, `kopin@pecd-nk.local` reported **Raspberry Pi 3 Model B Rev 1.2**
 (not Pi 4), Debian 13 aarch64, Python 3.13 and an **IMX219 ribbon camera**.
 
-The integration imports the completed code already on the Pi:
-- `~/Desktop/leafs-starter/main.py`: U2-Net-p foreground segmentation and
-  colour rules, using `u2netp.onnx` and `helpers.py`.
-- `~/Desktop/AI_base/main.py`: 15-class pepper/potato/tomato classifier,
-  with its original preprocessing, temperature scaling and labels.
-- `~/Desktop/.venv`: existing inference environment, plus pyserial 3.5.
+The `models/` folder contains the completed Python inference scripts read
+from PECD-NK on November 19. The weights and ordered labels match the hashes
+in the lab asset manifests. The small model's export licence was unspecified
+in the supplied assets. Each model folder includes its sample images and the
+supplied attribution files.
 
-These lab folders and model weights remain unchanged and must remain present.
-Their `ASSETS.json` files record model hashes and provenance; the small
-model's export provenance/license is not recorded in the supplied assets.
-The old `~/Desktop/Something.py` is only a UART handshake demo; it must not run
-at the same time as this integration on the same port.
+| File | Purpose |
+| --- | --- |
+| `plant_cycle.py` | Camera capture, model selection, UART, and run records |
+| `models/leafs-starter/main.py`, `helpers.py`, `u2netp.onnx` | Foreground detection and leaf colour screening |
+| `models/AI_base/main.py`, `labels.json`, `model.onnx` | Classification of individual leaf images |
+| `config.json`, `requirements.txt`, `plant-cycle.service` | Runtime settings, Python dependencies and optional boot service |
+
+From a clone on the Pi, run the following from `FINAL_Smart_Plant_NM` to try
+the bundled healthy pepper image. Live capture also requires `rpicam-still`.
+The deployed Pi uses the existing Python 3.13 environment in `~/Desktop/.venv`.
+For a fresh Pi, create that environment before running the install command.
+
+```bash
+cd RaspberryPi
+~/Desktop/.venv/bin/python -m pip install -r requirements.txt
+~/Desktop/.venv/bin/python plant_cycle.py --offline --image models/leafs-starter/images/pepper_healthy.jpg
+```
+
+The bundled config resolves model directories relative to the config file.
+Existing configs pointing to the Pi's Desktop model folders still work.
+For deployments using the supplied service, copy this folder's contents
+(including `models/`) to `~/plant-monitor/`. Preserve site-specific settings
+in the deployed config. The old `~/Desktop/Something.py` was a standalone
+UART lab demo and is unused by the service.
 
 ## Decision policy
 
@@ -53,7 +71,7 @@ Installed on the Pi in `~/plant-monitor`. Confirm species and serial port in
 cd ~/plant-monitor
 # Existing image; no camera or serial access:
 ~/Desktop/.venv/bin/python plant_cycle.py --offline \
-  --image ~/Desktop/leafs-starter/images/pepper_healthy.jpg
+  --image models/leafs-starter/images/pepper_healthy.jpg
 # Fresh camera photo; no serial access:
 ~/Desktop/.venv/bin/python plant_cycle.py --offline
 # Logs only; no camera, models, alarms or shutdown:

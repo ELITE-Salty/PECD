@@ -296,6 +296,8 @@ def main():
     if args.logs_only and (args.image is not None or args.offline):
         parser.error("--logs-only cannot be combined with --image or --offline")
     config = json.loads(args.config.read_text())
+    for key in ("small_model_dir", "large_model_dir"):
+        config[key] = str(args.config.resolve().parent / Path(config[key]).expanduser())
     return run_cycle(config, args.image, args.offline, args.logs_only)
 
 

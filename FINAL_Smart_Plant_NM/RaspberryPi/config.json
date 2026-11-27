@@ -1,6 +1,6 @@
 {
-  "small_model_dir": "~/Desktop/leafs-starter",
-  "large_model_dir": "~/Desktop/AI_base",
+  "small_model_dir": "models/leafs-starter",
+  "large_model_dir": "models/AI_base",
   "plant_species": "unknown",
   "output_dir": "~/plant-monitor/runs",
   "camera": {"width": 1640, "height": 1232},
